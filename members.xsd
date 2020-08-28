@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ xmlns:members="http://www.nada.kth.se/~kjgrahn/2D1518/projekt/system/"
+ elementFormDefault="qualified"
+ targetNamespace="http://www.nada.kth.se/~kjgrahn/2D1518/projekt/system/">
+
+<xs:complexType name="MembersType">
+  <xs:sequence>
+    <xs:element ref="members:person" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:element name="person">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element ref="members:username"/>
+      <xs:element ref="members:surname"/>
+      <xs:element ref="members:familyname"/>
+      <xs:element ref="members:email"/>
+      <xs:element ref="members:phone"/>
+      <xs:element ref="members:about" minOccurs="0" maxOccurs="1"/>
+      <xs:element ref="members:birthdate" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<xs:element name="email">
+  <xs:simpleType>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\w+[@]\w+[\.\w+]+" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:element>
+
+<xs:element name="members"    type="members:MembersType"/>
+<xs:element name="username"   type="xs:string"/>
+<xs:element name="surname"    type="xs:string"/>
+<xs:element name="familyname" type="xs:string"/>
+<xs:element name="phone"      type="xs:string"/>
+<xs:element name="about"      type="xs:string"/>
+<xs:element name="birthdate"  type="xs:date"/>
+
+</xs:schema>

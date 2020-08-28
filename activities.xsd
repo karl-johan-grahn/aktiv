@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ xmlns:activities="http://www.nada.kth.se/~kjgrahn/2D1518/projekt/system/"
+ elementFormDefault="qualified"
+ targetNamespace="http://www.nada.kth.se/~kjgrahn/2D1518/projekt/system/">
+
+<xs:complexType name="ActivitiesType">
+  <xs:sequence>
+    <xs:element ref="activities:activity" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:sequence>
+</xs:complexType>
+
+<xs:element name="activity">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element ref="activities:date"/>
+      <xs:element ref="activities:place"/>
+      <xs:element ref="activities:type"/>
+      <xs:element ref="activities:description" minOccurs="0" maxOccurs="1"/>
+      <xs:element ref="activities:timefrom"/>
+      <xs:element ref="activities:timeto"/>
+      <xs:element ref="activities:contact"/>
+      <xs:element ref="activities:participant" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<xs:element name="contact">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element ref="activities:username"/>
+      <xs:element ref="activities:surname"/>
+      <xs:element ref="activities:familyname"/>
+      <xs:element ref="activities:email"/>
+      <xs:element ref="activities:phone"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<xs:element name="participant">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element ref="activities:surname"/>
+      <xs:element ref="activities:familyname"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<xs:element name="email">
+  <xs:simpleType>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\w+[@]\w+[\.\w+]+" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:element>
+
+<xs:element name="activities"  type="activities:ActivitiesType"/>
+<xs:element name="date"        type="xs:date"/>
+<xs:element name="place"       type="xs:string"/>
+<xs:element name="type"        type="xs:string"/>
+<xs:element name="description" type="xs:string"/>
+<xs:element name="timefrom"    type="xs:time"/>
+<xs:element name="timeto"      type="xs:time"/>
+<xs:element name="username"    type="xs:string"/>
+<xs:element name="surname"     type="xs:string"/>
+<xs:element name="familyname"  type="xs:string"/>
+<xs:element name="phone"       type="xs:string"/>
+
+</xs:schema>

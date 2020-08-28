@@ -1,0 +1,610 @@
+<?php // Klass för att hantera medlemmar i systemet
+
+class Medlem {
+
+  var $username;
+  var $password;
+  var $birthdate;
+  var $surname;
+  var $familyname;
+  var $phone;
+  var $about;
+  var $email;
+
+  function Medlem() {}
+
+  function ny_medlem($un, $p, $b, $s, $f, $ph, $a, $e) {
+
+    $this->username = $un;
+    $this->password = $p;
+    $this->birthdate = $b;
+    $this->surname = $s;
+    $this->familyname = $f;
+    $this->phone = $ph;
+    $this->about = $a;
+    $this->email = $e;
+
+    $username = $this->username;
+    $password = $this->password;
+    $birthdate = $this->birthdate;
+    $surname = $this->surname;
+    $familyname = $this->familyname;
+    $phone = $this->phone;
+    $about = $this->about;
+    $email = $this->email;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    // Kontrollerar om det redan finns en användare med inmatat användarnamn
+    $kontroll = "SELECT username
+                 FROM person
+                 WHERE username='$username'";
+    $resultat = mysql_query($kontroll)
+                  or die("Control query failed!");
+    $line = mysql_fetch_object($resultat);
+    if (!empty($line)) {
+      print("<p>Det finns redan en anv&#228;ndare med anv&#228;ndarnamnet $username!</p>");
+    }
+    else {
+      $laggTill = "INSERT INTO person (username, password, birthdate,
+                                       surname, familyname, phone,
+                                       about, email, admin)
+                   VALUES ('$username', '$password', '$birthdate',
+                           '$surname', '$familyname', '$phone',
+                           '$about', '$email', 'no')";
+      mysql_query($laggTill)
+             or die("Det gick inte att l&#228;gga till ny medlem!");
+      print("<p>$surname $familyname &#228;r nu medlem.</p>");
+    }
+    mysql_close($link);
+  }
+  
+  function andra_personuppgifter($an, $pa, $su, $fa , $em, $ph, $ab) {
+    
+    $this->anv = $an;
+    $this->password = $pa;
+    $this->surname = $su;
+    $this->familyname = $fa;
+    $this->email = $em;
+    $this->phone = $ph;
+    $this->about = $ab;
+    
+    $anv = $this->anv;
+    $password = $this->password;
+    $surname = $this->surname;
+    $familyname = $this->familyname;
+    $phone = $this->phone;
+    $about = $this->about;
+    $email = $this->email;
+    
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    if (!empty($password)) {
+      $spara = "UPDATE person SET password='$password', surname='$surname',
+                                  familyname='$familyname', email='$email',
+                                  phone='$phone', about='$about'
+                                  WHERE username='$anv'";
+    }
+    if (empty($password)) {
+      $spara = "UPDATE person SET surname='$surname',
+                                  familyname='$familyname', email='$email',
+                                  phone='$phone', about='$about'
+                                  WHERE username='$anv'";
+    }
+    mysql_query($spara)
+             or die("Save query failed!");
+
+    mysql_close($link);
+  }
+
+  function radera_medlem($un) {
+    $this->username = $un;
+
+    $username = $this->username;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $tabort = "DELETE FROM person
+               WHERE username='$username'";
+
+    mysql_query($tabort)
+             or die("Remove person query failed!");
+
+    $tabort = "DELETE FROM activity
+               WHERE contact='$username'";
+
+    mysql_query($tabort)
+             or die("Remove activity query failed!");
+
+    $tabort = "DELETE FROM participant
+               WHERE contact='$username' OR username='$username'";
+
+    mysql_query($tabort)
+             or die("Remove participant query failed!");
+
+    mysql_close($link);
+
+    session_start();
+    session_unset();
+    session_destroy();
+    print("<html>\n");
+    print("<head>\n");
+    print("<title>Borttagen och utloggad medlem</title>\n");
+    print("</head>\n");
+    print("<body>\n");
+    print("<p>Medlemmen $username &#228;r borttagen och Ni &#228;r utloggad fr&#229;n systemet.</p>");
+    print("<a href='index.php'>Till startsidan</a>");
+    print("</body>\n");
+    print("</html>");
+
+    die;
+  }
+
+}
+?>
+
+<?php // Klass för att hantera inloggning
+
+class Inloggning {
+
+  function Inloggning() {}
+
+  function logga_in($anv, $los) {
+
+    $this->anv = $anv;
+    $this->los = $los;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $hamta = "SELECT username, password, admin
+              FROM person
+              WHERE username = '$anv' AND password = '$los'";
+
+    $resultat = mysql_query($hamta)
+             or die("Det gick inte att h&#228;mta information fr&#229;n databasen!");
+			  
+    $rad = mysql_fetch_object($resultat);
+
+    if(empty($rad->username)) {
+      print("<html>\n");
+      print("<head>\n");
+      print("<title>Aktiv</title>\n");
+      print("</head>\n");
+      print("<body>\n");
+      print("<p>Felaktigt anv&#228;ndarnamn och/eller l&#246;senord! F&#246;rs&#246;k igen.</p><p/>");
+      print("<a href='inloggning.php'>Logga in</a>\n");
+      print("</body>\n");
+      print("</html>");
+      $this->anv = "";
+      die;
+    }
+    else {
+      $_SESSION['anv'] = $anv;
+
+      $admin = $rad->admin;
+      if (strcmp($admin, "yes") == 0) {
+        $_SESSION['admin'] = "yes";
+      }
+      if (strcmp($admin, "no") == 0) {
+        $_SESSION['admin'] = "no";
+      }
+
+      $radera = "DELETE FROM activity
+                 WHERE adate<'" . date("Y-m-d") . "'";
+      $resultat = mysql_query($radera);
+      //         or die("Remove activity query in class Inloggning failed!");
+
+      $radera = "DELETE FROM participant
+                 WHERE adate<'" . date("Y-m-d") . "'";
+      $resultat = mysql_query($radera);
+      //         or die("Remove participant query in class Inloggning failed!");
+
+      if (strcmp($_SESSION['admin'], "yes") == 0) {
+        print("<html>\n");
+        print("<head>\n");
+        print("<title>Aktiv</title>\n");
+        print("</head>\n");
+        print("<body>\n");
+        print("<h1>Aktiv\Inloggad</h1>\n");
+        print("<p>\n");
+        print("<a href='lagga_till_aktivitet.php'>L&#228;gga till aktivitet</a> | <a href='andra_aktivitet.php'>&#196;ndra en aktivitet</a> | <a href='visa_aktiviteter.php'>Visa aktiviteter</a> | <a href='andra_personuppgifter.php'>&#196;ndra personuppgifter</a> | <a href='logga_ut.php'>Logga ut</a>\n");
+        print("</p>\n");
+        print("</body>\n");
+        print("</html>");
+      }
+
+      if (strcmp($_SESSION['admin'], "no") == 0) {
+        print("<html>\n");
+        print("<head>\n");
+        print("<title>Aktiv</title>\n");
+        print("</head>\n");
+        print("<body>\n");
+        print("<h1>Aktiv\Inloggad</h1>\n");
+        print("<p>\n");
+        print("<a href='visa_aktiviteter.php'>Visa aktiviteter</a> | <a href='andra_personuppgifter.php'>&#196;ndra personuppgifter</a> | <a href='logga_ut.php'>Logga ut</a>\n");
+        print("</p>\n");
+        print("</body>\n");
+        print("</html>");
+      }
+
+      mysql_close($link);
+      die;
+    }
+    mysql_free_result($resultat);
+    mysql_close($link);
+  }
+
+}
+?>
+
+<?php // Klass för att hantera aktiviteter i systemet
+
+class Aktivitet {
+
+  var $timefrom;
+  var $contact;
+  var $timeto;
+  var $description;
+  var $type;
+  var $place;
+  var $adate;
+  var $anv;
+
+  function Aktivitet() {}
+
+  function ny_aktivitet($tf, $c, $tt, $de, $ty, $pl, $da) {
+
+    $this->timefrom = $tf;
+    $this->contact = $c;
+    $this->timeto = $tt;
+    $this->description = $de;
+    $this->type = $ty;
+    $this->place = $pl;
+    $this->datum = $da;
+
+    $timefrom = $this->timefrom;
+    $contact = $this->contact;
+    $timeto = $this->timeto;
+    $description = $this->description;
+    $type = $this->type;
+    $place = $this->place;
+    $datum = $this->datum;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect when adding activity");
+    mysql_select_db("doojil")
+             or die("Could not select database when adding activity");
+
+    $kontroll = "SELECT contact
+                 FROM activity
+                 WHERE timefrom = '$timefrom' AND
+                       adate = '$datum' AND
+                       contact = '$contact'";
+    $resultat = mysql_query($kontroll);
+    //         or die("Control query failed!");
+    $line = mysql_fetch_object($resultat);
+    if (!empty($line)) {
+      print("<p>Du kan vara ansvarig f&#246;r h&#246;gst en aktivitet vid ett givet datum och starttid!</p>\n");
+      print("</body>\n");
+      print("</html>");
+      mysql_close($link);
+      die;
+    }
+    else {
+      $laggTill = "INSERT INTO activity (timefrom, contact, timeto,
+                                         description, type, place, adate)
+                   VALUES ('$timefrom', '$contact', '$timeto',
+                           '$description', '$type', '$place',
+                           '$datum')";
+      mysql_query($laggTill)
+             or die("Add activity query failed!");
+      print("<p>Aktiviteten &#228;r inlagd.</p>\n");
+      print("</body>\n");
+      print("</html>");
+      mysql_close($link);
+      die;
+    }
+
+    mysql_close($link);
+  }
+
+  function ny_aktivitet_epostinfo($tf, $co, $tt, $de, $ty, $pl, $ad) {
+
+    $this->timefrom = $tf;
+    $this->contact = $co;
+    $this->timeto = $tt;
+    $this->description = $de;
+    $this->type = $ty;
+    $this->place = $pl;
+    $this->adate = $ad;
+
+    $timefrom = $this->timefrom;
+    $contact = $this->contact;
+    $timeto = $this->timeto;
+    $description = $this->description;
+    $type = $this->type;
+    $place = $this->place;
+    $adate = $this->adate;
+
+    $aktivitet = new Aktivitet();
+    $aktivitet->ny_aktivitet($tf, $co, $tt, $de, $ty, $pl, $ad);
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $query = "SELECT email
+              FROM person";
+    $result = mysql_query($query)
+              or die("Query failed");
+    while ($line = mysql_fetch_object($result)) {
+      $email .= $line->email . ", ";
+    }
+    $query = "SELECT surname, familyname, email, phone
+              FROM person
+              WHERE username='$contact'";
+    $result = mysql_query($query)
+              or die("Query failed");
+    while ($line = mysql_fetch_object($result)) {
+      $c_surname = $line->surname;
+      $c_familyname = $line->familyname;
+      $c_email = $line->email;
+      $c_phone = $line->phone;
+    }
+
+    $subject = "$type, $adate";
+    $message = "
+Typ av aktivitet: $type
+Datum: $adate
+Plats: $place
+Beskrivning: $description
+Starttid: $timefrom
+Sluttid: $timeto
+Kontaktperson: $c_surname $c_familyname, $c_email, $c_phone
+";
+    $headers = "From: $c_surname $c_familyname <$c_email>\r\n";
+    mail($email, $subject, $message, $headers);
+
+    print("<p>Aktiviteten &#228;r inlagd.</p>\n");
+    print("<p>Alla medlemmar har informerats via e-post.</p>\n");
+    print("</body>\n");
+    print("</html>");
+    mysql_close($link);
+    die;
+  }
+
+  function radera_aktivitet($tf, $da, $co) {
+    $this->timefrom = $tf;
+    $this->datum = $da;
+    $this->contact = $co;
+
+    $timefrom = $this->timefrom;
+    $datum = $this->datum;
+    $contact = $this->contact;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $tabort = "DELETE FROM activity
+               WHERE contact='$contact' AND timefrom='$timefrom'
+                                    AND adate='$datum'";
+
+    mysql_query($tabort)
+             or die("Det gick inte att ta bort aktivitet!");
+
+    $tabort = "DELETE FROM participant
+               WHERE contact='$username' AND timefrom='$timefrom'
+                                    AND adate='$datum'";
+
+    mysql_query($tabort)
+             or die("Det gick inte att ta bort deltagare!");
+
+    mysql_close($link);
+  }
+
+  function andra_aktivitet($tfo, $tt, $de, $ty, $pl, $ado, $con, $tfn, $adn) {
+    $this->timefrom_old = $tfo;
+    $this->timeto = $tt;
+    $this->description = $de;
+    $this->type = $ty;
+    $this->place = $pl;
+    $this->adate_old = $ado;
+    $this->contact = $con;
+    $this->timefrom_new = $tfn;
+    $this->adate_new = $adn;
+
+    $timefrom_old = $this->timefrom_old;
+    $timeto = $this->timeto;
+    $description = $this->description;
+    $type = $this->type;
+    $place = $this->place;
+    $adate_old = $this->adate_old;
+    $contact = $this->contact;
+    $timefrom_new = $this->timefrom_new;
+    $adate_new = $this->adate_new;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $andra = "UPDATE activity SET timefrom='$timefrom_new', timeto='$timeto',
+                                  description='$description', type='$type',
+                                  place='$place', adate='$adate_new'
+                                  WHERE contact='$contact' AND
+                                        timefrom='$timefrom_old' AND
+                                        adate='$adate_old'";
+    mysql_query($andra)
+             or die("Det gick inte att &#228;ndra aktivitet!");
+
+    mysql_close($link);
+  }
+
+  function andra_aktivitet_epost($tfo, $tt, $de, $ty, $pl, $ado, $con, $tfn, $adn) {
+
+    $this->timefrom_old = $tfo;
+    $this->timeto = $tt;
+    $this->description = $de;
+    $this->type = $ty;
+    $this->place = $pl;
+    $this->adate_old = $ado;
+    $this->contact = $con;
+    $this->timefrom_new = $tfn;
+    $this->adate_new = $adn;
+
+    $timefrom_old = $this->timefrom_old;
+    $timeto = $this->timeto;
+    $description = $this->description;
+    $type = $this->type;
+    $place = $this->place;
+    $adate_old = $this->adate_old;
+    $contact = $this->contact;
+    $timefrom_new = $this->timefrom_new;
+    $adate_new = $this->adate_new;
+
+    $aktivitet = new Aktivitet();
+    $aktivitet->andra_aktivitet($tfo, $tt, $de, $ty, $pl, $ado, $con, $tfn, $adn);
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    // Välj ut e-post till deltagare
+    $query = "SELECT username
+              FROM participant
+              WHERE timefrom='$timefrom_new' AND
+                    contact='$contact'       AND adate='$adate_new'";
+    $result = mysql_query($query)
+              or die("Query failed");
+    while ($line = mysql_fetch_object($result)) {
+      $query2 = "SELECT email
+                 FROM person
+                 WHERE username='$line->username'";
+      $result2 = mysql_query($query2)
+                  or die("Query failed");
+      $line2 = mysql_fetch_object($result2);
+      $email .= $line2->email . ", ";
+    }
+
+    $query = "SELECT surname, familyname, email, phone
+              FROM person
+              WHERE username='$contact'";
+    $result = mysql_query($query)
+              or die("Query failed");
+    while ($line = mysql_fetch_object($result)) {
+      $c_surname = $line->surname;
+      $c_familyname = $line->familyname;
+      $c_email = $line->email;
+      $c_phone = $line->phone;
+    }
+
+    $subject = "$type på $adate_old har ändrats!";
+    $message = "
+Följande gäller:
+
+Typ av aktivitet: $type
+Datum: $adate_new
+Plats: $place
+Beskrivning: $description
+Starttid: $timefrom_new
+Sluttid: $timeto
+Kontaktperson: $c_surname $c_familyname, $c_email, $c_phone
+";
+    $headers = "From: $c_surname $c_familyname <$c_email>\r\n";
+    mail($email, $subject, $message, $headers);
+
+    mysql_close($link);
+  }
+
+}
+?>
+
+<?php // Klass för att hantera deltagare i aktiviteter
+
+class Deltagare {
+
+  var $timefrom;
+  var $contact;
+  var $anv;
+
+  function Deltagare() {}
+
+  function ny_deltagare($tf, $co, $ad, $an) {
+
+    $this->timefrom = $tf;
+    $this->contact = $co;
+    $this->anv = $an;
+    $this->adate = $ad;
+
+    $timefrom = $this->timefrom;
+    $contact = $this->contact;
+    $anv = $this->anv;
+    $adate = $this->adate;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    // Kontrollera om användaren redan har anmält sig till aktiviteten.
+    $kontroll = "SELECT username
+                 FROM participant
+                 WHERE username='$anv'    AND timefrom='$timefrom' AND
+                       contact='$contact' AND adate='$adate'";
+    $resultat = mysql_query($kontroll)
+                  or die("Query failed");
+    $line = mysql_fetch_object($resultat);
+    if (strcmp($line->username, $anv) == 0) {}
+    else {
+      $laggTill = "INSERT INTO participant
+                   VALUES ('$anv', '$timefrom', '$contact', '$adate')";
+      mysql_query($laggTill)
+               or die("Det gick inte att lŠgga till ny deltagare!");
+    }
+    mysql_close($link);
+  }
+
+  function avanmal_deltagare($tf, $co, $da, $an) {
+
+    $this->timefrom = $tf;
+    $this->contact = $co;
+    $this->anv = $an;
+    $this->datum = $da;
+
+    $timefrom = $this->timefrom;
+    $contact = $this->contact;
+    $anv = $this->anv;
+    $datum = $this->datum;
+
+    $link = mysql_connect("localhost", "root", "")
+             or die("Could not connect");
+    mysql_select_db("doojil")
+             or die("Could not select database");
+
+    $tabort = "DELETE FROM participant
+               WHERE username='$anv' AND timefrom='$timefrom' AND
+                     contact='$contact' AND adate='$datum'";
+    mysql_query($tabort)
+             or die("Det gick inte att ta bort deltagare!");
+
+    mysql_close($link);
+  }
+
+}
+?>
